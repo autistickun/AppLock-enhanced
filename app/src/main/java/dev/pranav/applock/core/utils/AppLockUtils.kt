@@ -107,6 +107,56 @@ private fun showBatteryOptimizationToast(context: Context, message: String) {
     }
 }
 
+/**
+ * Checks whether the current device is a Transsion device (Infinix, Tecno, Itel).
+ */
+fun isTranssionDevice(): Boolean {
+    val m = Build.MANUFACTURER.lowercase()
+    val b = Build.BRAND.lowercase()
+    return m.contains("infinix") || m.contains("tecno") || m.contains("itel") ||
+            b.contains("infinix") || b.contains("tecno") || b.contains("itel")
+}
+
+/**
+ * Opens Infinix/Transsion Phone Master Autostart settings to prevent XOS from killing AppLock in background.
+ */
+fun launchInfinixAutoStartSettings(context: Context) {
+    val candidateIntents = listOf(
+        Intent().setComponent(android.content.ComponentName("com.transsion.phonemanager", "com.transsion.phonemanager.autostart.AutoStartActivity")),
+        Intent().setComponent(android.content.ComponentName("com.transsion.phonemanager", "com.transsion.phonemanager.autostart.AutoStartListActivity")),
+        Intent().setComponent(android.content.ComponentName("com.transsion.powerchecker", "com.transsion.powerchecker.PowerCheckerMainActivity")),
+        Intent().setComponent(android.content.ComponentName("com.transsion.phonemanager", "com.transsion.phonemanager.MainActivity"))
+    )
+
+    for (intent in candidateIntents) {
+        try {
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            if (intent.resolveActivity(context.packageManager) != null) {
+                context.startActivity(intent)
+                return
+            }
+        } catch (_: Exception) {}
+    }
+
+    // Fallback to app details
+    openAppInfoSettings(context)
+}
+
+/**
+ * Opens App Info settings (critical for Android 13 to allow "Restricted Settings" for Accessibility).
+ */
+fun openAppInfoSettings(context: Context) {
+    try {
+        val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+            data = "package:${context.packageName}".toUri()
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+        context.startActivity(intent)
+    } catch (e: Exception) {
+        Log.e(TAG, "Failed to open app info settings", e)
+    }
+}
+
 private const val TAG = "AppLockUtils"
 private const val DEFAULT_VIBRATION_DURATION = 500L
 

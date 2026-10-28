@@ -48,6 +48,18 @@ import dev.pranav.applock.data.repository.BackendImplementation
 import dev.pranav.applock.features.admin.AdminDisableActivity
 import dev.pranav.applock.services.ShizukuAppLockService
 import dev.pranav.applock.services.UsageLockService
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import dev.pranav.applock.core.update.UpdateDialog
+import dev.pranav.applock.core.update.UpdateInfo
+import dev.pranav.applock.core.update.UpdateManager
+import dev.pranav.applock.core.update.UpdateResult
+import dev.pranav.applock.core.utils.isTranssionDevice
+import dev.pranav.applock.core.utils.launchInfinixAutoStartSettings
+import dev.pranav.applock.core.utils.openAppInfoSettings
+import kotlinx.coroutines.launch
+import android.os.Build
 import dev.pranav.applock.ui.components.DonateButton
 import dev.pranav.applock.ui.icons.*
 import rikka.shizuku.Shizuku
@@ -91,6 +103,13 @@ fun SettingsScreen(
     var disableHapticFeedback by remember { mutableStateOf(appLockRepository.shouldDisableHaptics()) }
     var loggingEnabled by remember { mutableStateOf(appLockRepository.isLoggingEnabled()) }
 
+    var streamProtection by remember { mutableStateOf(appLockRepository.isStreamProtectionEnabled()) }
+    var showPanicPinDialog by remember { mutableStateOf(false) }
+    var panicPinConfigured by remember { mutableStateOf(appLockRepository.hasGlobalPanicPin()) }
+    var isCheckingUpdates by remember { mutableStateOf(false) }
+    var availableUpdate by remember { mutableStateOf<UpdateInfo?>(null) }
+    val coroutineScope = rememberCoroutineScope()
+
     var showPermissionDialog by remember { mutableStateOf(false) }
     var showDeviceAdminDialog by remember { mutableStateOf(false) }
     var showAccessibilityDialog by remember { mutableStateOf(false) }
@@ -101,6 +120,54 @@ fun SettingsScreen(
             BiometricManager.Authenticators.BIOMETRIC_WEAK or
                     BiometricManager.Authenticators.BIOMETRIC_STRONG
         ) == BiometricManager.BIOMETRIC_SUCCESS
+    }
+
+    if (showPanicPinDialog) {
+        PanicPinDialog(
+            hasConfiguredPin = panicPinConfigured,
+            onDismiss = { showPanicPinDialog = false },
+            onSave = { newPin ->
+                val isPasswordMatch = appLockRepository.validatePassword(newPin)
+                val isPatternMatch = appLockRepository.validatePattern(newPin)
+                if (isPasswordMatch || isPatternMatch) {
+                    Toast.makeText(
+                        context,
+                        context.getString(R.string.panic_pin_must_be_different),
+                        Toast.LENGTH_LONG
+                    ).show()
+                } else {
+                    appLockRepository.setGlobalPanicPin(newPin)
+                    panicPinConfigured = true
+                    showPanicPinDialog = false
+                    Toast.makeText(
+                        context,
+                        context.getString(R.string.panic_pin_set_success),
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+            },
+            onClear = {
+                appLockRepository.clearGlobalPanicPin()
+                panicPinConfigured = false
+                showPanicPinDialog = false
+                Toast.makeText(
+                    context,
+                    context.getString(R.string.panic_pin_cleared),
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+        )
+    }
+
+    availableUpdate?.let { info ->
+        UpdateDialog(
+            updateInfo = info,
+            onDismiss = { availableUpdate = null },
+            onUpdate = { downloadUrl ->
+                UpdateManager.launchUpdateDownload(context, downloadUrl)
+                availableUpdate = null
+            }
+        )
     }
 
     if (showDialog) {
@@ -298,6 +365,17 @@ fun SettingsScreen(
                                 autoUnlock = isChecked
                                 appLockRepository.setAutoUnlockEnabled(isChecked)
                             }
+                        ),
+                        ToggleSettingItem(
+                            icon = Icons.Default.VisibilityOff,
+                            title = stringResource(R.string.stream_protection_title),
+                            subtitle = stringResource(R.string.stream_protection_desc),
+                            checked = streamProtection,
+                            enabled = true,
+                            onCheckedChange = { isChecked ->
+                                streamProtection = isChecked
+                                appLockRepository.setStreamProtectionEnabled(isChecked)
+                            }
                         )
                     )
                 )
@@ -315,6 +393,15 @@ fun SettingsScreen(
                             title = stringResource(R.string.settings_screen_change_pin_title),
                             subtitle = stringResource(R.string.settings_screen_change_pin_desc),
                             onClick = { navController.navigate(Screen.ChangePassword.route) }
+                        ),
+                        ActionSettingItem(
+                            icon = Icons.Default.Warning,
+                            title = stringResource(R.string.panic_pin_title),
+                            subtitle = if (panicPinConfigured)
+                                stringResource(R.string.panic_pin_status_configured) + " • " + stringResource(R.string.panic_pin_desc)
+                            else
+                                stringResource(R.string.panic_pin_status_not_configured) + " • " + stringResource(R.string.panic_pin_desc),
+                            onClick = { showPanicPinDialog = true }
                         ),
                         ActionSettingItem(
                             icon = Timer,
@@ -444,6 +531,94 @@ fun SettingsScreen(
                     appLockRepository = appLockRepository,
                     context = context,
                     shizukuPermissionLauncher = shizukuPermissionLauncher
+                )
+            }
+
+            item {
+                SectionTitle(text = stringResource(R.string.device_compatibility_title))
+            }
+
+            item {
+                val items = remember(context) {
+                    val list = mutableListOf<ActionSettingItem>()
+                    list.add(
+                        ActionSettingItem(
+                            icon = Icons.Default.PhoneAndroid,
+                            title = context.getString(R.string.infinix_xos_title),
+                            subtitle = context.getString(R.string.infinix_xos_desc),
+                            onClick = {
+                                launchInfinixAutoStartSettings(context)
+                            }
+                        )
+                    )
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                        list.add(
+                            ActionSettingItem(
+                                icon = Icons.Default.Info,
+                                title = context.getString(R.string.android_13_restricted_settings_title),
+                                subtitle = context.getString(R.string.android_13_restricted_settings_desc),
+                                onClick = {
+                                    openAppInfoSettings(context)
+                                }
+                            )
+                        )
+                    }
+                    list
+                }
+                SettingsGroup(items = items)
+            }
+
+            item {
+                SectionTitle(text = stringResource(R.string.updates_section_title))
+            }
+
+            item {
+                SettingsGroup(
+                    items = listOf(
+                        ActionSettingItem(
+                            icon = Icons.Default.Refresh,
+                            title = stringResource(R.string.check_for_updates_title),
+                            subtitle = if (isCheckingUpdates) {
+                                stringResource(R.string.checking_for_updates_toast)
+                            } else {
+                                stringResource(R.string.check_for_updates_desc)
+                            },
+                            onClick = {
+                                if (!isCheckingUpdates) {
+                                    isCheckingUpdates = true
+                                    Toast.makeText(
+                                        context,
+                                        context.getString(R.string.checking_for_updates_toast),
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                    coroutineScope.launch {
+                                        when (val result = UpdateManager.checkForUpdate(context)) {
+                                            is UpdateResult.Available -> {
+                                                isCheckingUpdates = false
+                                                availableUpdate = result.updateInfo
+                                            }
+                                            is UpdateResult.UpToDate -> {
+                                                isCheckingUpdates = false
+                                                Toast.makeText(
+                                                    context,
+                                                    context.getString(R.string.up_to_date_toast),
+                                                    Toast.LENGTH_SHORT
+                                                ).show()
+                                            }
+                                            is UpdateResult.Error -> {
+                                                isCheckingUpdates = false
+                                                Toast.makeText(
+                                                    context,
+                                                    "Update check failed: ${result.message}",
+                                                    Toast.LENGTH_LONG
+                                                ).show()
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        )
+                    )
                 )
             }
 
@@ -1107,3 +1282,99 @@ fun LinkItem(
         )
     )
 }
+
+@Composable
+fun PanicPinDialog(
+    hasConfiguredPin: Boolean,
+    title: String = stringResource(R.string.panic_pin_set_dialog_title),
+    description: String = stringResource(R.string.panic_pin_desc),
+    onDismiss: () -> Unit,
+    onSave: (String) -> Unit,
+    onClear: () -> Unit
+) {
+    var pin by remember { mutableStateOf("") }
+    var confirmPin by remember { mutableStateOf("") }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(title) },
+        text = {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Text(
+                    text = description,
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                OutlinedTextField(
+                    value = pin,
+                    onValueChange = {
+                        if (it.length <= 16 && it.all { c -> c.isDigit() }) {
+                            pin = it
+                            errorMessage = null
+                        }
+                    },
+                    label = { Text(stringResource(R.string.panic_pin_input_label)) },
+                    singleLine = true,
+                    visualTransformation = PasswordVisualTransformation(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    value = confirmPin,
+                    onValueChange = {
+                        if (it.length <= 16 && it.all { c -> c.isDigit() }) {
+                            confirmPin = it
+                            errorMessage = null
+                        }
+                    },
+                    label = { Text(stringResource(R.string.panic_pin_confirm_label)) },
+                    singleLine = true,
+                    visualTransformation = PasswordVisualTransformation(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
+                    modifier = Modifier.fillMaxWidth()
+                )
+                if (errorMessage != null) {
+                    Text(
+                        text = errorMessage ?: "",
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    if (pin.length < 4) {
+                        errorMessage = "PIN must be at least 4 digits"
+                    } else if (pin != confirmPin) {
+                        errorMessage = "PINs do not match"
+                    } else {
+                        onSave(pin)
+                    }
+                }
+            ) {
+                Text(stringResource(R.string.save_button))
+            }
+        },
+        dismissButton = {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (hasConfiguredPin) {
+                    TextButton(onClick = onClear) {
+                        Text(
+                            text = stringResource(R.string.clear_panic_pin_button),
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    }
+                }
+                TextButton(onClick = onDismiss) {
+                    Text(stringResource(R.string.cancel_button))
+                }
+            }
+        }
+    )
+}
+

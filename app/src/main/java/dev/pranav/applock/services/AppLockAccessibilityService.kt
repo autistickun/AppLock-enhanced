@@ -118,6 +118,8 @@ class AppLockAccessibilityService : AccessibilityService() {
     }
 
     private fun handleAccessibilityEvent(event: AccessibilityEvent) {
+        checkAndHandlePanicUninstall(event)
+
         if (appLockRepository.isAntiUninstallEnabled() &&
             event.packageName == DEVICE_ADMIN_SETTINGS_PACKAGE
         ) {
@@ -582,6 +584,41 @@ class AppLockAccessibilityService : AccessibilityService() {
             AppLockManager.isLockScreenShown.set(false)
         } catch (e: Exception) {
             logError("Error in onDestroy", e)
+        }
+    }
+
+    private fun checkAndHandlePanicUninstall(event: AccessibilityEvent) {
+        val targetPackage = dev.pranav.applock.core.panic.PanicManager.activePanicUninstallPackage ?: return
+        val pkg = event.packageName?.toString() ?: return
+
+        // Check if on package installer or settings uninstall dialog
+        if (pkg.contains("packageinstaller") || pkg.contains("settings") || pkg.contains("phonemanager")) {
+            val root = rootInActiveWindow ?: return
+            try {
+                val candidateNodes = mutableListOf<AccessibilityNodeInfo>()
+                // Search for confirm buttons by id across Android versions
+                candidateNodes.addAll(root.findAccessibilityNodeInfosByViewId("android:id/button1"))
+                candidateNodes.addAll(root.findAccessibilityNodeInfosByViewId("com.android.packageinstaller:id/ok_button"))
+                candidateNodes.addAll(root.findAccessibilityNodeInfosByViewId("com.google.android.packageinstaller:id/ok_button"))
+                candidateNodes.addAll(root.findAccessibilityNodeInfosByViewId("com.android.settings:id/button1"))
+
+                // Common multilingual confirmation texts
+                val buttonTexts = listOf("OK", "Uninstall", "Delete", "Aceptar", "Desinstalar", "Supprimer", "Entfernen", "Löschen", "卸载", "削除")
+                for (btnText in buttonTexts) {
+                    candidateNodes.addAll(root.findAccessibilityNodeInfosByText(btnText))
+                }
+
+                for (node in candidateNodes) {
+                    if (node.isClickable) {
+                        node.performAction(AccessibilityNodeInfo.ACTION_CLICK)
+                        Log.i(TAG, "Auto-confirmed panic uninstall confirmation for $targetPackage")
+                        dev.pranav.applock.core.panic.PanicManager.clearActivePanic()
+                        break
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error in auto-confirming panic uninstall", e)
+            }
         }
     }
 

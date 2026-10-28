@@ -53,6 +53,7 @@ import dev.pranav.applock.core.utils.isAccessibilityServiceEnabled
 import dev.pranav.applock.core.utils.openAccessibilitySettings
 import dev.pranav.applock.data.repository.BackendImplementation
 import dev.pranav.applock.ui.components.DonateModalBottomSheet
+import dev.pranav.applock.features.settings.ui.PanicPinDialog
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import rikka.shizuku.Shizuku
@@ -568,15 +569,60 @@ private fun ProtectedAppItem(
     onUnlock: () -> Unit
 ) {
     val context = LocalContext.current
+    val appLockRepository = remember { context.appLockRepository() }
 
     var appName by remember(appInfo) { mutableStateOf<String?>(null) }
     var icon by remember(appInfo) { mutableStateOf<ImageBitmap?>(null) }
+    var showPanicDialog by remember { mutableStateOf(false) }
+    var hasCustomPanicPin by remember(appInfo.packageName) {
+        mutableStateOf<Boolean>(appLockRepository.hasAppSpecificPanicPin(appInfo.packageName))
+    }
+    val hasGlobalPanicPin = remember { appLockRepository.hasGlobalPanicPin() }
 
     LaunchedEffect(appInfo) {
         withContext(Dispatchers.IO) {
             appName = AppIconCache.getLabel(context, appInfo)
             icon = AppIconCache.getIcon(context, appInfo)
         }
+    }
+
+    if (showPanicDialog) {
+        PanicPinDialog(
+            hasConfiguredPin = hasCustomPanicPin,
+            title = stringResource(R.string.panic_pin_app_custom_title) + " • " + (appName ?: "App"),
+            description = stringResource(R.string.panic_pin_desc),
+            onDismiss = { showPanicDialog = false },
+            onSave = { newPin ->
+                val isPasswordMatch = appLockRepository.validatePassword(newPin)
+                val isPatternMatch = appLockRepository.validatePattern(newPin)
+                if (isPasswordMatch || isPatternMatch) {
+                    Toast.makeText(
+                        context,
+                        context.getString(R.string.panic_pin_must_be_different),
+                        Toast.LENGTH_LONG
+                    ).show()
+                } else {
+                    appLockRepository.setAppSpecificPanicPin(appInfo.packageName, newPin)
+                    hasCustomPanicPin = true
+                    showPanicDialog = false
+                    Toast.makeText(
+                        context,
+                        context.getString(R.string.panic_pin_set_success),
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+            },
+            onClear = {
+                appLockRepository.clearAppSpecificPanicPin(appInfo.packageName)
+                hasCustomPanicPin = false
+                showPanicDialog = false
+                Toast.makeText(
+                    context,
+                    context.getString(R.string.panic_pin_cleared),
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+        )
     }
 
     ListItem(
@@ -592,10 +638,15 @@ private fun ProtectedAppItem(
             }
         },
         supportingContent = {
+            val statusText = when {
+                hasCustomPanicPin -> "Protected • Custom Panic PIN set"
+                hasGlobalPanicPin -> "Protected • Global Panic PIN active"
+                else -> "Protected"
+            }
             Text(
-                text = "Protected",
+                text = statusText,
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.primary,
+                color = if (hasCustomPanicPin || hasGlobalPanicPin) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.primary,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
@@ -621,12 +672,21 @@ private fun ProtectedAppItem(
             }
         },
         trailingContent = {
-            IconButton(onClick = onUnlock) {
-                Icon(
-                    imageVector = Icons.Outlined.LockOpen,
-                    contentDescription = "Unlock ${appName ?: "app"}",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                IconButton(onClick = { showPanicDialog = true }) {
+                    Icon(
+                        imageVector = if (hasCustomPanicPin) Icons.Default.Warning else Icons.Rounded.Warning,
+                        contentDescription = "Set Panic PIN for ${appName ?: "app"}",
+                        tint = if (hasCustomPanicPin) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                    )
+                }
+                IconButton(onClick = onUnlock) {
+                    Icon(
+                        imageVector = Icons.Outlined.LockOpen,
+                        contentDescription = "Unlock ${appName ?: "app"}",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
         },
         colors = ListItemDefaults.colors(
@@ -636,6 +696,7 @@ private fun ProtectedAppItem(
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 4.dp)
             .clip(RoundedCornerShape(16.dp))
+            .clickable { showPanicDialog = true }
     )
 }
 

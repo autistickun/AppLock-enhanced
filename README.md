@@ -63,16 +63,20 @@ root required.
 ## Features
 
 - Material You design, adapts to your theme
-- Biometric and PIN authentication
+- Biometric, PIN, Pattern, and Password authentication
 - Fingerprint, Face Unlock, and PIN support
 - Lock any app on your device
-- Anti-uninstall protection
+- **Panic PIN Protection**: Set a global or per-app secret Panic PIN that instantly exits and silently uninstalls ONLY the targeted app if coerced
+- **Stream Protection**: Automatically blacks out the lock screen during screen recordings, live streaming, or screen sharing to prevent credential leakage
+- **In-App Update Checker**: Seamlessly check for new GitHub releases, review patch notes, and update without third-party app stores
+- **Device Optimization**: Built-in support for Infinix/Transsion (XOS) background autostart and Android 13+ Restricted Settings
+- Anti-uninstall protection (Device Admin and Shizuku)
 - Anti-uninstall protection for user apps
 - Unlock timeout for convenience
 - No root required
 - One-tap app locking
 - All data stays on your device
-- Real-time background protection
+- Real-time background protection (Accessibility, UsageStats, or Shizuku)
 - Lightweight and fast
 
 <br/>

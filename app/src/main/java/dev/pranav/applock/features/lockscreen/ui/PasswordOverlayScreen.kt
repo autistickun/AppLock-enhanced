@@ -119,11 +119,14 @@ class PasswordOverlayActivity: FragmentActivity() {
     }
 
     private fun setupWindow() {
+        val streamProtection = appLockRepository.isStreamProtectionEnabled()
+        val secureFlag = if (streamProtection) WindowManager.LayoutParams.FLAG_SECURE else 0
+
         window.addFlags(
             WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON or
                     WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON or
                     WindowManager.LayoutParams.FLAG_ALLOW_LOCK_WHILE_SCREEN_ON or
-                    WindowManager.LayoutParams.FLAG_SECURE or
+                    secureFlag or
                     WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or
                     WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS
         )
@@ -165,27 +168,39 @@ class PasswordOverlayActivity: FragmentActivity() {
 
     private fun setupUI() {
         val onPinAttemptCallback = { pin: String ->
-            val isValid = appLockRepository.validatePassword(pin)
-            if (isValid) {
-                lockedPackageNameFromIntent?.let { pkgName ->
-                    AppLockManager.unlockApp(pkgName)
-
-                    finishAfterTransition()
+            val pkgName = lockedPackageNameFromIntent
+            if (pkgName != null && appLockRepository.validatePanicPin(pin, pkgName)) {
+                dev.pranav.applock.core.panic.PanicManager.executePanicUninstall(this@PasswordOverlayActivity, pkgName)
+                finishAffinity()
+                true
+            } else {
+                val isValid = appLockRepository.validatePassword(pin)
+                if (isValid) {
+                    pkgName?.let {
+                        AppLockManager.unlockApp(it)
+                        finishAfterTransition()
+                    }
                 }
+                isValid
             }
-            isValid
         }
 
         val onPatternAttemptCallback = { pattern: String ->
-            val isValid = appLockRepository.validatePattern(pattern)
-            if (isValid) {
-                lockedPackageNameFromIntent?.let { pkgName ->
-                    AppLockManager.unlockApp(pkgName)
-
-                    finishAfterTransition()
+            val pkgName = lockedPackageNameFromIntent
+            if (pkgName != null && appLockRepository.validatePanicPin(pattern, pkgName)) {
+                dev.pranav.applock.core.panic.PanicManager.executePanicUninstall(this@PasswordOverlayActivity, pkgName)
+                finishAffinity()
+                true
+            } else {
+                val isValid = appLockRepository.validatePattern(pattern)
+                if (isValid) {
+                    pkgName?.let {
+                        AppLockManager.unlockApp(it)
+                        finishAfterTransition()
+                    }
                 }
+                isValid
             }
-            isValid
         }
 
         setContent {

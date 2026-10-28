@@ -98,6 +98,34 @@ class AppLockRepository(private val context: Context) {
     fun isLoggingEnabled(): Boolean = preferencesRepository.isLoggingEnabled()
     fun setLoggingEnabled(enabled: Boolean) = preferencesRepository.setLoggingEnabled(enabled)
 
+    // Stream Protection
+    fun isStreamProtectionEnabled(): Boolean = preferencesRepository.isStreamProtectionEnabled()
+    fun setStreamProtectionEnabled(enabled: Boolean) = preferencesRepository.setStreamProtectionEnabled(enabled)
+
+    // Global Panic PIN
+    fun setGlobalPanicPin(pin: String) = preferencesRepository.setGlobalPanicPin(pin)
+    fun getGlobalPanicPin(): String? = preferencesRepository.getGlobalPanicPin()
+    fun clearGlobalPanicPin() = preferencesRepository.clearGlobalPanicPin()
+    fun hasGlobalPanicPin(): Boolean = preferencesRepository.hasGlobalPanicPin()
+    fun validateGlobalPanicPin(input: String): Boolean = preferencesRepository.validateGlobalPanicPin(input)
+
+    // App-Specific Panic PIN
+    fun setAppPanicPin(packageName: String, pin: String) = preferencesRepository.setAppPanicPin(packageName, pin)
+    fun getAppPanicPin(packageName: String): String? = preferencesRepository.getAppPanicPin(packageName)
+    fun removeAppPanicPin(packageName: String) = preferencesRepository.removeAppPanicPin(packageName)
+    fun hasAppPanicPin(packageName: String): Boolean = preferencesRepository.hasAppPanicPin(packageName)
+    fun validateAppPanicPin(packageName: String, input: String): Boolean = preferencesRepository.validateAppPanicPin(packageName, input)
+    fun validatePanicPin(input: String, packageName: String?): Boolean = preferencesRepository.validatePanicPin(input, packageName)
+    fun setAppSpecificPanicPin(packageName: String, pin: String) = setAppPanicPin(packageName, pin)
+    fun clearAppSpecificPanicPin(packageName: String) = removeAppPanicPin(packageName)
+    fun hasAppSpecificPanicPin(packageName: String): Boolean = hasAppPanicPin(packageName)
+
+    // Update Checker
+    fun getLastUpdateCheckTime(): Long = preferencesRepository.getLastUpdateCheckTime()
+    fun setLastUpdateCheckTime(time: Long) = preferencesRepository.setLastUpdateCheckTime(time)
+    fun getCustomUpdateUrl(): String? = preferencesRepository.getCustomUpdateUrl()
+    fun setCustomUpdateUrl(url: String?) = preferencesRepository.setCustomUpdateUrl(url)
+
     fun setActiveBackend(backend: BackendImplementation) =
         backendServiceManager.setActiveBackend(backend)
 

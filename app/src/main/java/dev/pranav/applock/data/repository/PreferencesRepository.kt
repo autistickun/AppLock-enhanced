@@ -170,6 +170,112 @@ class PreferencesRepository(context: Context) {
         settingsPrefs.edit { putBoolean(KEY_LOGGING_ENABLED, enabled) }
     }
 
+    // --- Stream Protection (Default: Enabled) ---
+    fun setStreamProtectionEnabled(enabled: Boolean) {
+        settingsPrefs.edit { putBoolean(KEY_STREAM_PROTECTION, enabled) }
+    }
+
+    fun isStreamProtectionEnabled(): Boolean {
+        return settingsPrefs.getBoolean(KEY_STREAM_PROTECTION, DEFAULT_STREAM_PROTECTION)
+    }
+
+    // --- Global Panic PIN ---
+    fun setGlobalPanicPin(pin: String) {
+        val salt = SecurityUtils.generateSalt()
+        val saltedHash = SecurityUtils.hashPassword(pin, salt)
+        appLockPrefs.edit(commit = true) { putString(KEY_GLOBAL_PANIC_PIN, saltedHash) }
+    }
+
+    fun getGlobalPanicPin(): String? {
+        return appLockPrefs.getString(KEY_GLOBAL_PANIC_PIN, null)
+    }
+
+    fun clearGlobalPanicPin() {
+        appLockPrefs.edit(commit = true) { remove(KEY_GLOBAL_PANIC_PIN) }
+    }
+
+    fun hasGlobalPanicPin(): Boolean {
+        return !getGlobalPanicPin().isNullOrBlank()
+    }
+
+    fun validateGlobalPanicPin(input: String): Boolean {
+        val stored = getGlobalPanicPin() ?: return false
+        val sanitized = SecurityUtils.sanitizePassword(input)
+        if (SecurityUtils.isSaltedHash(stored)) {
+            return SecurityUtils.verifyPassword(sanitized, stored)
+        }
+        if (stored == input || stored == sanitized) {
+            setGlobalPanicPin(sanitized)
+            return true
+        }
+        return false
+    }
+
+    // --- App-Specific Panic PIN ---
+    fun setAppPanicPin(packageName: String, pin: String) {
+        val salt = SecurityUtils.generateSalt()
+        val saltedHash = SecurityUtils.hashPassword(pin, salt)
+        appLockPrefs.edit(commit = true) {
+            putString(KEY_APP_PANIC_PIN_PREFIX + packageName, saltedHash)
+        }
+    }
+
+    fun getAppPanicPin(packageName: String): String? {
+        return appLockPrefs.getString(KEY_APP_PANIC_PIN_PREFIX + packageName, null)
+    }
+
+    fun removeAppPanicPin(packageName: String) {
+        appLockPrefs.edit(commit = true) {
+            remove(KEY_APP_PANIC_PIN_PREFIX + packageName)
+        }
+    }
+
+    fun hasAppPanicPin(packageName: String): Boolean {
+        return !getAppPanicPin(packageName).isNullOrBlank()
+    }
+
+    fun validateAppPanicPin(packageName: String, input: String): Boolean {
+        val stored = getAppPanicPin(packageName) ?: return false
+        val sanitized = SecurityUtils.sanitizePassword(input)
+        if (SecurityUtils.isSaltedHash(stored)) {
+            return SecurityUtils.verifyPassword(sanitized, stored)
+        }
+        if (stored == input || stored == sanitized) {
+            setAppPanicPin(packageName, sanitized)
+            return true
+        }
+        return false
+    }
+
+    /**
+     * Validates whether input matches either the app's specific panic pin
+     * or the global panic pin. Returns true if it is a panic PIN trigger.
+     */
+    fun validatePanicPin(input: String, packageName: String?): Boolean {
+        if (input.isBlank()) return false
+        if (packageName != null && validateAppPanicPin(packageName, input)) {
+            return true
+        }
+        return validateGlobalPanicPin(input)
+    }
+
+    // --- Update Checker ---
+    fun getLastUpdateCheckTime(): Long {
+        return settingsPrefs.getLong(KEY_LAST_UPDATE_CHECK_TIME, 0L)
+    }
+
+    fun setLastUpdateCheckTime(time: Long) {
+        settingsPrefs.edit { putLong(KEY_LAST_UPDATE_CHECK_TIME, time) }
+    }
+
+    fun getCustomUpdateUrl(): String? {
+        return settingsPrefs.getString(KEY_CUSTOM_UPDATE_URL, null)
+    }
+
+    fun setCustomUpdateUrl(url: String?) {
+        settingsPrefs.edit { putString(KEY_CUSTOM_UPDATE_URL, url) }
+    }
+
     companion object {
         private const val PREFS_NAME_APP_LOCK = "app_lock_prefs"
         private const val PREFS_NAME_SETTINGS = "app_lock_settings"
@@ -190,9 +296,15 @@ class PreferencesRepository(context: Context) {
         private const val KEY_AUTO_UNLOCK = "auto_unlock"
         private const val KEY_SHOW_SYSTEM_APPS = "show_system_apps"
         private const val KEY_LOCK_TYPE = "lock_type"
+        private const val KEY_STREAM_PROTECTION = "stream_protection"
+        private const val KEY_GLOBAL_PANIC_PIN = "global_panic_pin"
+        private const val KEY_APP_PANIC_PIN_PREFIX = "app_panic_pin_"
+        private const val KEY_LAST_UPDATE_CHECK_TIME = "last_update_check_time"
+        private const val KEY_CUSTOM_UPDATE_URL = "custom_update_url"
 
         private const val DEFAULT_PROTECT_ENABLED = true
         private const val DEFAULT_UNLOCK_DURATION = 0
+        private const val DEFAULT_STREAM_PROTECTION = true
 
         const val LOCK_TYPE_PIN = "pin"
         const val LOCK_TYPE_PATTERN = "pattern"

@@ -88,6 +88,7 @@ Make sure you have Shizuku installed and enabled via ADB. Tap \'Next\' to grant 
     <string name="re_enter_new_pin_confirm_label">Re-enter your new PIN to confirm</string>
     <string name="reset_using_device_password_button">Reset using device password</string>
     <string name="cancel_button">Cancel</string>
+    <string name="save_button">Save</string>
     <string name="start_over_button">Start Over</string>
     <string name="password_set_successfully_toast">Password set successfully</string>
     <string name="use_pattern_button">Use Pattern</string>
@@ -316,4 +317,44 @@ Make sure you have Shizuku installed and enabled via ADB. Tap \'Next\' to grant 
         If AppLock has helped you, please consider a small donation—any amount means the world to me and keeps this project alive.
         Thank you for believing in my work!
     </string>
+
+    <!-- Stream Protection -->
+    <string name="stream_protection_title">Stream Protection</string>
+    <string name="stream_protection_desc">Darkens and blacks out the lock screen during screen recordings and screen sharing for privacy. Restores automatically once off the lock screen.</string>
+
+    <!-- Panic PIN -->
+    <string name="panic_pin_section_title">Panic PIN Protection</string>
+    <string name="panic_pin_title">Panic PIN</string>
+    <string name="panic_pin_desc">Entering this PIN on a lock screen immediately uninstalls ONLY that protected app from your phone.</string>
+    <string name="panic_pin_set_dialog_title">Set Panic PIN</string>
+    <string name="panic_pin_input_label">Enter secret Panic PIN</string>
+    <string name="panic_pin_confirm_label">Confirm secret Panic PIN</string>
+    <string name="panic_pin_set_success">Panic PIN saved successfully</string>
+    <string name="panic_pin_cleared">Panic PIN cleared</string>
+    <string name="panic_pin_status_configured">Configured</string>
+    <string name="panic_pin_status_not_configured">Not configured</string>
+    <string name="panic_pin_must_be_different">Panic PIN cannot be the same as your normal unlock password</string>
+    <string name="panic_pin_app_custom_title">Custom App Panic PIN</string>
+    <string name="panic_pin_app_custom_desc">Configure a specific panic PIN for this app</string>
+    <string name="clear_panic_pin_button">Clear Panic PIN</string>
+
+    <!-- App Update -->
+    <string name="updates_section_title">Updates</string>
+    <string name="check_for_updates_title">Check for Updates</string>
+    <string name="check_for_updates_desc">Check for official releases and patch notes</string>
+    <string name="checking_for_updates_toast">Checking for updates…</string>
+    <string name="up_to_date_toast">You are on the latest version!</string>
+    <string name="update_dialog_title">Update Available</string>
+    <string name="update_dialog_patch_notes_title">Patch Notes &amp; Changelog</string>
+    <string name="update_dialog_update_button">Upgrade Now</string>
+    <string name="update_no_patch_notes">Performance improvements and bug fixes.</string>
+    <string name="update_available_title">AppLock Update %1$s Available</string>
+    <string name="update_available_text">Tap to review patch notes and upgrade the app.</string>
+
+    <!-- Device Compatibility (Infinix XOS & Android 13) -->
+    <string name="device_compatibility_title">Device Optimization</string>
+    <string name="infinix_xos_title">Infinix / XOS Background Setting</string>
+    <string name="infinix_xos_desc">Configure Phone Master autostart to prevent XOS battery saver from stopping protection.</string>
+    <string name="android_13_restricted_settings_title">Android 13 Restricted Settings</string>
+    <string name="android_13_restricted_settings_desc">If accessibility says \"Restricted setting\", tap here to open App Info &gt; 3 dots menu &gt; \"Allow restricted settings\".</string>
 </resources>
