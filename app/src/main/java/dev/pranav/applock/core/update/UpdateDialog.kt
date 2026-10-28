@@ -8,7 +8,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.SystemUpdate
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -18,18 +18,30 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
 import dev.pranav.applock.R
+import kotlinx.coroutines.launch
 
 @Composable
 fun UpdateDialog(
     updateInfo: UpdateInfo,
     onDismiss: () -> Unit,
-    onUpdate: (downloadUrl: String) -> Unit
+    onUpdate: ((downloadUrl: String) -> Unit)? = null
 ) {
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
     val scrollState = rememberScrollState()
 
+    var isDownloading by remember { mutableStateOf(false) }
+    var downloadProgress by remember { mutableFloatStateOf(0f) }
+
     AlertDialog(
-        onDismissRequest = onDismiss,
-        properties = DialogProperties(usePlatformDefaultWidth = false),
+        onDismissRequest = {
+            if (!isDownloading) onDismiss()
+        },
+        properties = DialogProperties(
+            usePlatformDefaultWidth = false,
+            dismissOnClickOutside = !isDownloading,
+            dismissOnBackPress = !isDownloading
+        ),
         modifier = Modifier
             .fillMaxWidth(0.92f)
             .padding(vertical = 16.dp),
@@ -102,22 +114,63 @@ fun UpdateDialog(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
+
+                if (isDownloading) {
+                    Spacer(modifier = Modifier.height(14.dp))
+                    LinearProgressIndicator(
+                        progress = { downloadProgress },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(8.dp)
+                            .clip(RoundedCornerShape(4.dp)),
+                        color = MaterialTheme.colorScheme.primary,
+                        trackColor = MaterialTheme.colorScheme.surfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        text = "Downloading update: ${(downloadProgress * 100).toInt()}%",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
         },
         confirmButton = {
             Button(
-                onClick = { onUpdate(updateInfo.downloadUrl) },
+                onClick = {
+                    if (!isDownloading) {
+                        isDownloading = true
+                        coroutineScope.launch {
+                            val success = UpdateManager.downloadAndInstallApk(
+                                context = context,
+                                downloadUrl = updateInfo.downloadUrl,
+                                onProgress = { progress ->
+                                    downloadProgress = progress
+                                }
+                            )
+                            isDownloading = false
+                            if (success) {
+                                onDismiss()
+                            }
+                        }
+                    }
+                },
+                enabled = !isDownloading,
                 shape = RoundedCornerShape(16.dp)
             ) {
-                Text(stringResource(R.string.update_dialog_update_button))
+                Text(
+                    if (isDownloading) "Downloading..." else stringResource(R.string.update_dialog_update_button)
+                )
             }
         },
         dismissButton = {
-            TextButton(
-                onClick = onDismiss,
-                shape = RoundedCornerShape(16.dp)
-            ) {
-                Text(stringResource(R.string.cancel_button))
+            if (!isDownloading) {
+                TextButton(
+                    onClick = onDismiss,
+                    shape = RoundedCornerShape(16.dp)
+                ) {
+                    Text(stringResource(R.string.cancel_button))
+                }
             }
         }
     )

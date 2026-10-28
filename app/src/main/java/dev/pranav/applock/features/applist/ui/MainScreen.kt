@@ -52,6 +52,10 @@ import dev.pranav.applock.core.utils.hasUsagePermission
 import dev.pranav.applock.core.utils.isAccessibilityServiceEnabled
 import dev.pranav.applock.core.utils.openAccessibilitySettings
 import dev.pranav.applock.data.repository.BackendImplementation
+import dev.pranav.applock.core.update.UpdateDialog
+import dev.pranav.applock.core.update.UpdateInfo
+import dev.pranav.applock.core.update.UpdateManager
+import dev.pranav.applock.core.update.UpdateResult
 import dev.pranav.applock.features.settings.ui.PanicPinDialog
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -117,6 +121,35 @@ fun MainScreen(
     }
 
     val appLockRepository = context.appLockRepository()
+
+    var availableUpdate by remember { mutableStateOf<UpdateInfo?>(null) }
+
+    LaunchedEffect(Unit) {
+        withContext(Dispatchers.IO) {
+            try {
+                val lastCheck = appLockRepository.getLastUpdateCheckTime()
+                val now = System.currentTimeMillis()
+                if (now - lastCheck > 6 * 60 * 60 * 1000L) {
+                    when (val result = UpdateManager.checkForUpdate(context)) {
+                        is UpdateResult.Available -> {
+                            UpdateManager.showUpdateNotification(context, result.updateInfo)
+                            withContext(Dispatchers.Main) {
+                                availableUpdate = result.updateInfo
+                            }
+                        }
+                        else -> {}
+                    }
+                }
+            } catch (_: Exception) {}
+        }
+    }
+
+    availableUpdate?.let { info ->
+        UpdateDialog(
+            updateInfo = info,
+            onDismiss = { availableUpdate = null }
+        )
+    }
 
     Scaffold(
         modifier = Modifier

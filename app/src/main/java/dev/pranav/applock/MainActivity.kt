@@ -10,6 +10,8 @@ import androidx.navigation.compose.rememberNavController
 import dev.pranav.applock.core.navigation.AppNavHost
 import dev.pranav.applock.core.navigation.NavigationManager
 import dev.pranav.applock.core.navigation.Screen
+import dev.pranav.applock.core.update.UpdateManager
+import dev.pranav.applock.core.utils.appLockRepository
 import dev.pranav.applock.ui.theme.AppLockTheme
 
 class MainActivity : FragmentActivity() {
@@ -19,6 +21,10 @@ class MainActivity : FragmentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
+        if (intent.getBooleanExtra(UpdateManager.EXTRA_SHOW_UPDATE, false)) {
+            applicationContext.appLockRepository().setLastUpdateCheckTime(0L)
+        }
 
         navigationManager = NavigationManager(this)
 

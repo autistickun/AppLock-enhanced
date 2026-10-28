@@ -160,11 +160,7 @@ fun SettingsScreen(
     availableUpdate?.let { info ->
         UpdateDialog(
             updateInfo = info,
-            onDismiss = { availableUpdate = null },
-            onUpdate = { downloadUrl ->
-                UpdateManager.launchUpdateDownload(context, downloadUrl)
-                availableUpdate = null
-            }
+            onDismiss = { availableUpdate = null }
         )
     }
 
