@@ -217,6 +217,25 @@ fun AlphanumericSetPasswordScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Top
         ) {
+            if (!isConfirmationMode && !isVerifyOldPasswordMode) {
+                LockTypeSelector(
+                    selectedType = PreferencesRepository.LOCK_TYPE_PASSWORD,
+                    onSelectType = { targetType ->
+                        when (targetType) {
+                            PreferencesRepository.LOCK_TYPE_PIN -> {
+                                switchToPinMethod()
+                            }
+                            PreferencesRepository.LOCK_TYPE_PATTERN -> {
+                                navController.navigate(Screen.SetPasswordPattern.route) {
+                                    popUpTo(Screen.SetPasswordAlphanumeric.route) { inclusive = true }
+                                }
+                            }
+                        }
+                    }
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+            }
+
             Text(
                 text = when {
                     isVerifyOldPasswordMode -> stringResource(R.string.enter_current_password_label)
@@ -317,20 +336,6 @@ fun AlphanumericSetPasswordScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            if (!isVerifyOldPasswordMode && !isConfirmationMode) {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.padding(bottom = 16.dp)
-                ) {
-                    TextButton(onClick = { switchToPinMethod() }) {
-                        Text(stringResource(R.string.use_pin_instead))
-                    }
-                    TextButton(onClick = { navController.navigate(Screen.SetPasswordPattern.route) }) {
-                        Text(stringResource(R.string.use_pattern_button))
-                    }
-                }
-                
-            }
 
             if (isVerifyOldPasswordMode) {
                 TextButton(onClick = { launchDeviceCredentialAuth() }) {

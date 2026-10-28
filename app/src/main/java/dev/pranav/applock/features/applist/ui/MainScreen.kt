@@ -52,7 +52,6 @@ import dev.pranav.applock.core.utils.hasUsagePermission
 import dev.pranav.applock.core.utils.isAccessibilityServiceEnabled
 import dev.pranav.applock.core.utils.openAccessibilitySettings
 import dev.pranav.applock.data.repository.BackendImplementation
-import dev.pranav.applock.ui.components.DonateModalBottomSheet
 import dev.pranav.applock.features.settings.ui.PanicPinDialog
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -118,34 +117,6 @@ fun MainScreen(
     }
 
     val appLockRepository = context.appLockRepository()
-
-    var showCommunityLink by remember { mutableStateOf(appLockRepository.isShowCommunityLink()) }
-
-    if (showCommunityLink) {
-        CommunityDialog(
-            onDismiss = {
-                appLockRepository.setCommunityLinkShown(true)
-                showCommunityLink = false
-            },
-            onJoin = {
-                appLockRepository.setCommunityLinkShown(true)
-                showCommunityLink = false
-                context.startActivity(
-                    Intent(
-                        Intent.ACTION_VIEW,
-                        "https://discord.gg/46wCMRVAre".toUri()
-                    )
-                )
-            }
-        )
-    }
-
-    var showDonateDialog by remember { mutableStateOf(appLockRepository.isShowDonateLink()) }
-    if (showDonateDialog && !showCommunityLink) {
-        DonateModalBottomSheet {
-            appLockRepository.setShowDonateLink(false); showDonateDialog = false
-        }
-    }
 
     Scaffold(
         modifier = Modifier
@@ -639,14 +610,14 @@ private fun ProtectedAppItem(
         },
         supportingContent = {
             val statusText = when {
-                hasCustomPanicPin -> "Protected • Custom Panic PIN set"
-                hasGlobalPanicPin -> "Protected • Global Panic PIN active"
+                hasCustomPanicPin -> "Protected • Secret PIN"
+                hasGlobalPanicPin -> "Protected • Panic PIN active"
                 else -> "Protected"
             }
             Text(
                 text = statusText,
                 style = MaterialTheme.typography.bodySmall,
-                color = if (hasCustomPanicPin || hasGlobalPanicPin) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.primary,
+                color = if (hasCustomPanicPin) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
@@ -675,9 +646,9 @@ private fun ProtectedAppItem(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = { showPanicDialog = true }) {
                     Icon(
-                        imageVector = if (hasCustomPanicPin) Icons.Default.Warning else Icons.Rounded.Warning,
+                        imageVector = Icons.Outlined.Shield,
                         contentDescription = "Set Panic PIN for ${appName ?: "app"}",
-                        tint = if (hasCustomPanicPin) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                        tint = if (hasCustomPanicPin) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.45f)
                     )
                 }
                 IconButton(onClick = onUnlock) {
@@ -775,55 +746,6 @@ private fun SelectableAppItem(
             .padding(horizontal = 16.dp, vertical = 4.dp)
             .clip(RoundedCornerShape(16.dp))
             .clickable(onClick = onClick)
-    )
-}
-
-@Composable
-private fun CommunityDialog(
-    onDismiss: () -> Unit,
-    onJoin: () -> Unit
-) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        properties = DialogProperties(usePlatformDefaultWidth = false),
-        icon = {
-            Icon(
-                Icons.Rounded.Groups,
-                contentDescription = null,
-                modifier = Modifier.size(32.dp),
-                tint = MaterialTheme.colorScheme.primary
-            )
-        },
-        title = {
-            Text(
-                text = stringResource(R.string.join_community),
-                style = MaterialTheme.typography.headlineSmall
-            )
-        },
-        text = {
-            Column(Modifier.fillMaxWidth(0.7f)) {
-                Text(
-                    text = stringResource(R.string.join_community_desc),
-                    style = MaterialTheme.typography.bodyMedium
-                )
-            }
-        },
-        confirmButton = {
-            Button(onClick = onJoin) {
-                Icon(
-                    Icons.Rounded.Forum,
-                    contentDescription = null,
-                    modifier = Modifier.size(18.dp)
-                )
-                Spacer(Modifier.width(8.dp))
-                Text(stringResource(R.string.join_discord))
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text(stringResource(R.string.maybe_later))
-            }
-        }
     )
 }
 

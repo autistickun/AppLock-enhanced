@@ -14,7 +14,10 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -24,6 +27,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Lock
@@ -34,6 +38,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.RadioButtonDefaults
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -83,6 +88,7 @@ enum class AppUsageMethod {
 @Composable
 fun MethodSelectionCard(
     title: String,
+    badge: String = "",
     description: String,
     icon: ImageVector,
     isSelected: Boolean,
@@ -91,50 +97,80 @@ fun MethodSelectionCard(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 12.dp, vertical = 4.dp)
+            .padding(horizontal = 14.dp, vertical = 5.dp)
             .clickable { onClick() },
+        shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
-            containerColor = if (isSelected) Color.White.copy(alpha = 0.2f) else Color.White.copy(
-                alpha = 0.1f
-            )
+            containerColor = if (isSelected) Color(0xFF261D38) else Color(0xFF161222)
         ),
-        border = if (isSelected) BorderStroke(2.dp, Color.White) else null,
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+        border = BorderStroke(
+            if (isSelected) 1.5.dp else 1.dp,
+            if (isSelected) Color(0xFFA855F7) else Color(0xFF2B2240)
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = if (isSelected) 3.dp else 0.dp)
     ) {
         Row(
-            modifier = Modifier.padding(16.dp),
+            modifier = Modifier.padding(14.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                modifier = Modifier.size(32.dp),
-                tint = if (isSelected) Color.White else Color.White.copy(alpha = 0.7f)
-            )
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .background(
+                        if (isSelected) Color(0xFFA855F7).copy(alpha = 0.25f) else Color(0xFF231C33),
+                        RoundedCornerShape(12.dp)
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    modifier = Modifier.size(22.dp),
+                    tint = if (isSelected) Color(0xFFC084FC) else Color(0xFFA396C2)
+                )
+            }
             Spacer(modifier = Modifier.width(12.dp))
             Column(
                 modifier = Modifier.weight(1f)
             ) {
-                Text(
-                    text = title,
-                    fontSize = 14.sp,
-                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                    color = Color.White
-                )
-                Spacer(modifier = Modifier.height(2.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = title,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color.White
+                    )
+                    if (badge.isNotEmpty()) {
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Surface(
+                            shape = RoundedCornerShape(4.dp),
+                            color = if (isSelected) Color(0xFFA855F7).copy(alpha = 0.35f) else Color(0xFF2B2240)
+                        ) {
+                            Text(
+                                text = badge,
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = if (isSelected) Color(0xFFE9D5FF) else Color(0xFF9E8DBF),
+                                modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp)
+                            )
+                        }
+                    }
+                }
+                Spacer(modifier = Modifier.height(3.dp))
                 Text(
                     text = description,
                     fontSize = 12.sp,
-                    lineHeight = 18.sp,
-                    color = Color.White.copy(alpha = 0.8f)
+                    lineHeight = 16.sp,
+                    color = Color(0xFFCBC0DF)
                 )
             }
+            Spacer(modifier = Modifier.width(6.dp))
             RadioButton(
                 selected = isSelected,
                 onClick = { onClick() },
                 colors = RadioButtonDefaults.colors(
-                    selectedColor = Color.White,
-                    unselectedColor = Color.White.copy(alpha = 0.6f)
+                    selectedColor = Color(0xFFA855F7),
+                    unselectedColor = Color(0xFF6B588E)
                 )
             )
         }
@@ -208,7 +244,7 @@ fun AppIntroScreen(navController: NavController) {
             title = stringResource(R.string.welc_applock),
             description = stringResource(R.string.welcome_desc),
             icon = Icons.Filled.Lock,
-            backgroundColor = Color(0xFF0F52BA),
+            backgroundColor = Color(0xFF0D0A14),
             contentColor = Color.White,
             onNext = { true }
         ),
@@ -216,7 +252,7 @@ fun AppIntroScreen(navController: NavController) {
             title = stringResource(R.string.secure_apps),
             description = stringResource(R.string.secure_apps_desc),
             icon = Icons.Default.Lock,
-            backgroundColor = Color(0xFF3C9401),
+            backgroundColor = Color(0xFF0D0A14),
             contentColor = Color.White,
             onNext = { true }
         ),
@@ -224,7 +260,7 @@ fun AppIntroScreen(navController: NavController) {
             title = stringResource(R.string.display_over_apps),
             description = stringResource(R.string.display_over_apps_desc),
             icon = Display,
-            backgroundColor = Color(0xFFDC143C),
+            backgroundColor = Color(0xFF0D0A14),
             contentColor = Color.White,
             onNext = {
                 overlayPermissionGranted = Settings.canDrawOverlays(context)
@@ -248,7 +284,7 @@ fun AppIntroScreen(navController: NavController) {
             title = stringResource(R.string.disable_battery_optimization_title),
             description = stringResource(R.string.disable_battery_optimization_desc),
             icon = BatterySaver,
-            backgroundColor = Color(0xFF08A471),
+            backgroundColor = Color(0xFF0D0A14),
             contentColor = Color.White,
             onNext = {
                 val powerManager = context.getSystemService(Context.POWER_SERVICE) as PowerManager
@@ -267,7 +303,7 @@ fun AppIntroScreen(navController: NavController) {
                 stringResource(R.string.notif_perm_desc)
             else stringResource(R.string.notif_perm_granted),
             icon = Icons.Default.Notifications,
-            backgroundColor = Color(0xFFE78A02),
+            backgroundColor = Color(0xFF0D0A14),
             contentColor = Color.White,
             onNext = {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -291,36 +327,38 @@ fun AppIntroScreen(navController: NavController) {
         title = stringResource(R.string.choose_app_detection),
         description = stringResource(R.string.app_detection_desc),
         icon = Icons.Default.Lock,
-        backgroundColor = Color(0xFF6B46C1),
+        backgroundColor = Color(0xFF0D0A14),
         contentColor = Color.White,
         customContent = {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color(0xFF6B46C1))
-                    .padding(16.dp),
+                    .background(Color(0xFF0D0A14))
+                    .verticalScroll(rememberScrollState())
+                    .padding(top = 28.dp, start = 16.dp, end = 16.dp, bottom = 120.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
+                verticalArrangement = Arrangement.Top
             ) {
                 Text(
                     text = stringResource(R.string.choose_app_detection),
-                    fontSize = 20.sp,
+                    fontSize = 22.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color.White,
                     textAlign = TextAlign.Center
                 )
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(8.dp))
                 Text(
                     text = stringResource(R.string.app_detection_desc),
-                    fontSize = 14.sp,
-                    lineHeight = 19.sp,
-                    color = Color.White.copy(alpha = 0.9f),
+                    fontSize = 13.sp,
+                    lineHeight = 18.sp,
+                    color = Color.White.copy(alpha = 0.75f),
                     textAlign = TextAlign.Center
                 )
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(16.dp))
 
                 MethodSelectionCard(
                     title = stringResource(R.string.accessibility_service_title),
+                    badge = "Recommended",
                     description = stringResource(R.string.accessibility_service_card_desc),
                     icon = Accessibility,
                     isSelected = selectedMethod == AppUsageMethod.ACCESSIBILITY,
@@ -329,6 +367,7 @@ fun AppIntroScreen(navController: NavController) {
 
                 MethodSelectionCard(
                     title = stringResource(R.string.usage_stats_title),
+                    badge = "Standard",
                     description = stringResource(R.string.usage_stats_card_desc),
                     icon = Icons.Default.QueryStats,
                     isSelected = selectedMethod == AppUsageMethod.USAGE_STATS,
@@ -337,20 +376,20 @@ fun AppIntroScreen(navController: NavController) {
 
                 MethodSelectionCard(
                     title = stringResource(R.string.shizuku_service_title),
+                    badge = "Advanced",
                     description = stringResource(R.string.shizuku_service_card_desc),
                     icon = Icons.Default.AutoAwesome,
                     isSelected = selectedMethod == AppUsageMethod.SHIZUKU,
                     onClick = { selectedMethod = AppUsageMethod.SHIZUKU },
                 )
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(14.dp))
                 Text(
                     text = stringResource(R.string.can_change_later_in_settings),
                     fontSize = 12.sp,
-                    color = Color.White.copy(alpha = 0.7f),
+                    color = Color.White.copy(alpha = 0.6f),
                     textAlign = TextAlign.Center
                 )
-                Spacer(modifier = Modifier.height(16.dp))
             }
         },
         onNext = { true }
@@ -362,7 +401,7 @@ fun AppIntroScreen(navController: NavController) {
                 title = stringResource(R.string.accessibility_service_title),
                 description = stringResource(R.string.app_intro_accessibility_desc),
                 icon = Accessibility,
-                backgroundColor = Color(0xFFF1550E),
+                backgroundColor = Color(0xFF0D0A14),
                 contentColor = Color.White,
                 onNext = {
                     accessibilityServiceEnabled = context.isAccessibilityServiceEnabled()
@@ -385,7 +424,7 @@ fun AppIntroScreen(navController: NavController) {
                 title = stringResource(R.string.app_intro_usage_stats_title),
                 description = stringResource(R.string.app_intro_usage_stats_desc),
                 icon = Icons.Default.QueryStats,
-                backgroundColor = Color(0xFFB453A4),
+                backgroundColor = Color(0xFF0D0A14),
                 contentColor = Color.White,
                 onNext = {
                     usageStatsPermissionGranted = context.hasUsagePermission()
@@ -411,7 +450,7 @@ fun AppIntroScreen(navController: NavController) {
                 title = stringResource(R.string.shizuku_service_title),
                 description = stringResource(R.string.app_intro_shizuku_desc),
                 icon = Icons.Default.AutoAwesome,
-                backgroundColor = Color(0xFFCE5151),
+                backgroundColor = Color(0xFF0D0A14),
                 contentColor = Color.White,
                 onNext = {
                     val isGranted = if (Shizuku.isPreV11()) {
@@ -447,7 +486,7 @@ fun AppIntroScreen(navController: NavController) {
         title = stringResource(R.string.app_intro_complete_privacy_title),
         description = stringResource(R.string.app_intro_complete_privacy_desc),
         icon = Icons.Default.Lock,
-        backgroundColor = Color(0xFF0047AB),
+        backgroundColor = Color(0xFF0D0A14),
         contentColor = Color.White,
         onNext = {
             overlayPermissionGranted = Settings.canDrawOverlays(context)

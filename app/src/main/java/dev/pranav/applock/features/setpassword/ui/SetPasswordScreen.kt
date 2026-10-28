@@ -417,7 +417,28 @@ fun SetPasswordScreen(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(8.dp))
+
+                if (!isConfirmationMode && !isVerifyOldPasswordMode) {
+                    LockTypeSelector(
+                        selectedType = PreferencesRepository.LOCK_TYPE_PIN,
+                        onSelectType = { targetType ->
+                            when (targetType) {
+                                PreferencesRepository.LOCK_TYPE_PATTERN -> {
+                                    navController.navigate(Screen.SetPasswordPattern.route) {
+                                        popUpTo(Screen.SetPassword.route) { inclusive = true }
+                                    }
+                                }
+                                PreferencesRepository.LOCK_TYPE_PASSWORD -> {
+                                    navController.navigate(Screen.SetPasswordAlphanumeric.route) {
+                                        popUpTo(Screen.SetPassword.route) { inclusive = true }
+                                    }
+                                }
+                            }
+                        }
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                }
 
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -519,30 +540,6 @@ fun SetPasswordScreen(
                     }
                 }
 
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.padding(bottom = 16.dp)
-                ) {
-                    TextButton(
-                        onClick = {
-                            navController.navigate(Screen.SetPasswordPattern.route)
-                        }
-                    ) {
-                        Text(
-                            stringResource(R.string.use_pattern_button)
-                        )
-                    }
-
-                    TextButton(
-                        onClick = {
-                            navController.navigate(Screen.SetPasswordAlphanumeric.route)
-                        }
-                    ) {
-                        Text(
-                            stringResource(R.string.use_password_button)
-                        )
-                    }
-                }
 
                 Column(
                     verticalArrangement = Arrangement.spacedBy(buttonSpacing),

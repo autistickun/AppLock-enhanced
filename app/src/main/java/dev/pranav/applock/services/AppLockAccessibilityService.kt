@@ -23,6 +23,7 @@ import dev.pranav.applock.core.utils.enableAccessibilityServiceWithShizuku
 import dev.pranav.applock.data.repository.AppLockRepository
 import dev.pranav.applock.data.repository.BackendImplementation
 import dev.pranav.applock.features.lockscreen.ui.LockScreenOverlayManager
+import dev.pranav.applock.features.lockscreen.ui.PasswordOverlayActivity
 import dev.pranav.applock.services.AppLockConstants.ACCESSIBILITY_SETTINGS_CLASSES
 import dev.pranav.applock.services.AppLockConstants.EXCLUDED_APPS
 import rikka.shizuku.Shizuku
@@ -332,47 +333,26 @@ class AppLockAccessibilityService : AccessibilityService() {
     private fun showLockScreenOverlay(packageName: String, triggeringPackage: String) {
         if (AppLockManager.isLockScreenShown.get()) return
 
-        LogUtils.d(TAG, "Showing overlay for: $packageName")
+        LogUtils.d(TAG, "Locked app detected: $packageName. Showing password overlay activity.")
+        AppLockManager.isLockScreenShown.set(true)
 
-        mainHandler.post {
-            AppLockManager.isLockScreenShown.set(true)
-            overlayManager?.showOverlay(
-                lockedPackageName = packageName,
-                triggeringPackageName = triggeringPackage,
-                onUnlock = {
-                    AppLockManager.isLockScreenShown.set(false)
-                    AppLockManager.unlockApp(packageName)
-                },
-                onExit = {
-                    performGlobalAction(GLOBAL_ACTION_HOME)
-                    Thread.sleep(200)
-                    AppLockManager.isLockScreenShown.set(false)
-                }
-            )
+        val intent = Intent(this, PasswordOverlayActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or
+                    Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS or
+                    Intent.FLAG_ACTIVITY_NO_ANIMATION or
+                    Intent.FLAG_FROM_BACKGROUND or
+                    Intent.FLAG_ACTIVITY_REORDER_TO_FRONT
+            putExtra("locked_package", packageName)
+            putExtra("triggering_package", triggeringPackage)
+        }
+
+        try {
+            startActivity(intent)
+        } catch (e: Exception) {
+            logError("Failed to start password overlay", e)
+            AppLockManager.isLockScreenShown.set(false)
         }
     }
-
-    //private fun showLockScreenOverlay(packageName: String, triggeringPackage: String) {
-    //    LogUtils.d(TAG, "Locked app detected: $packageName. Showing overlay.")
-    //    AppLockManager.isLockScreenShown.set(true)
-    //
-    //    val intent = Intent(this, PasswordOverlayActivity::class.java).apply {
-    //        flags = Intent.FLAG_ACTIVITY_NEW_TASK or
-    //                Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS or
-    //                Intent.FLAG_ACTIVITY_NO_ANIMATION or
-    //                Intent.FLAG_FROM_BACKGROUND or
-    //                Intent.FLAG_ACTIVITY_REORDER_TO_FRONT
-    //        putExtra("locked_package", packageName)
-    //        putExtra("triggering_package", triggeringPackage)
-    //    }
-    //
-    //    try {
-    //        startActivity(intent)
-    //    } catch (e: Exception) {
-    //        logError("Failed to start password overlay", e)
-    //        AppLockManager.isLockScreenShown.set(false)
-    //    }
-    //}
 
     private fun checkForDeviceAdminDeactivation(event: AccessibilityEvent) {
         Log.d(TAG, "Checking for device admin deactivation for event: $event")

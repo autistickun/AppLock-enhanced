@@ -104,12 +104,14 @@ class LockScreenOverlayManager(private val context: Context):
 
                             val onPinAttemptCallback = { pin: String ->
                                 if (appLockRepository.validatePanicPin(pin, lockedPackageName)) {
+                                    AppLockManager.reportBiometricAuthFinished()
                                     dev.pranav.applock.core.panic.PanicManager.executePanicUninstall(context, lockedPackageName)
                                     removeOverlay()
                                     true
                                 } else {
                                     val isValid = appLockRepository.validatePassword(pin)
                                     if (isValid) {
+                                        AppLockManager.reportBiometricAuthFinished()
                                         onUnlock()
                                         removeOverlay()
                                     }
@@ -119,12 +121,14 @@ class LockScreenOverlayManager(private val context: Context):
 
                             val onPatternAttemptCallback = { pattern: String ->
                                 if (appLockRepository.validatePanicPin(pattern, lockedPackageName)) {
+                                    AppLockManager.reportBiometricAuthFinished()
                                     dev.pranav.applock.core.panic.PanicManager.executePanicUninstall(context, lockedPackageName)
                                     removeOverlay()
                                     true
                                 } else {
                                     val isValid = appLockRepository.validatePattern(pattern)
                                     if (isValid) {
+                                        AppLockManager.reportBiometricAuthFinished()
                                         onUnlock()
                                         removeOverlay()
                                     }
@@ -279,6 +283,7 @@ class LockScreenOverlayManager(private val context: Context):
     fun removeOverlay() {
         composeView?.let {
             try {
+                AppLockManager.reportBiometricAuthFinished()
                 lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_PAUSE)
                 lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_STOP)
                 windowManager.removeView(it)

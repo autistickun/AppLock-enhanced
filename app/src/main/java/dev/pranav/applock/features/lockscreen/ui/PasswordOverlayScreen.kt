@@ -2,6 +2,7 @@ package dev.pranav.applock.features.lockscreen.ui
 
 import dev.pranav.applock.features.lockscreen.ui.AlphanumericPasswordOverlayScreen
 import android.content.Context
+import android.content.Intent
 import android.content.res.Configuration
 import android.os.Build
 import android.os.Bundle
@@ -91,13 +92,28 @@ class PasswordOverlayActivity: FragmentActivity() {
             this,
             object: androidx.activity.OnBackPressedCallback(true) {
                 override fun handleOnBackPressed() {
-                    // Prevent back navigation to maintain security
-                    Log.d(TAG, "Back pressed ignored on AppLock overlay")
+                    Log.d(TAG, "Back pressed on AppLock overlay - navigating home")
+                    exitToHomeScreen()
                 }
             })
 
         setupWindow()
         loadAppNameAndSetupUI()
+    }
+
+    private fun exitToHomeScreen() {
+        AppLockManager.isLockScreenShown.set(false)
+        AppLockManager.reportBiometricAuthFinished()
+        try {
+            val homeIntent = Intent(Intent.ACTION_MAIN).apply {
+                addCategory(Intent.CATEGORY_HOME)
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+            }
+            startActivity(homeIntent)
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to navigate home", e)
+        }
+        finish()
     }
 
     override fun onPostCreate(savedInstanceState: Bundle?) {
@@ -132,7 +148,6 @@ class PasswordOverlayActivity: FragmentActivity() {
         )
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
-            //setShowWhenLocked(true)
             setTurnScreenOn(true)
         }
 
@@ -140,9 +155,7 @@ class PasswordOverlayActivity: FragmentActivity() {
             window.setHideOverlayWindows(true)
         }
 
-
         val layoutParams = window.attributes
-        layoutParams.type = WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
         layoutParams.width = WindowManager.LayoutParams.MATCH_PARENT
         layoutParams.height = WindowManager.LayoutParams.MATCH_PARENT
 
@@ -170,6 +183,8 @@ class PasswordOverlayActivity: FragmentActivity() {
         val onPinAttemptCallback = { pin: String ->
             val pkgName = lockedPackageNameFromIntent
             if (pkgName != null && appLockRepository.validatePanicPin(pin, pkgName)) {
+                AppLockManager.isLockScreenShown.set(false)
+                AppLockManager.reportBiometricAuthFinished()
                 dev.pranav.applock.core.panic.PanicManager.executePanicUninstall(this@PasswordOverlayActivity, pkgName)
                 finishAffinity()
                 true
@@ -177,6 +192,8 @@ class PasswordOverlayActivity: FragmentActivity() {
                 val isValid = appLockRepository.validatePassword(pin)
                 if (isValid) {
                     pkgName?.let {
+                        AppLockManager.isLockScreenShown.set(false)
+                        AppLockManager.reportBiometricAuthFinished()
                         AppLockManager.unlockApp(it)
                         finishAfterTransition()
                     }
@@ -188,6 +205,8 @@ class PasswordOverlayActivity: FragmentActivity() {
         val onPatternAttemptCallback = { pattern: String ->
             val pkgName = lockedPackageNameFromIntent
             if (pkgName != null && appLockRepository.validatePanicPin(pattern, pkgName)) {
+                AppLockManager.isLockScreenShown.set(false)
+                AppLockManager.reportBiometricAuthFinished()
                 dev.pranav.applock.core.panic.PanicManager.executePanicUninstall(this@PasswordOverlayActivity, pkgName)
                 finishAffinity()
                 true
@@ -195,6 +214,8 @@ class PasswordOverlayActivity: FragmentActivity() {
                 val isValid = appLockRepository.validatePattern(pattern)
                 if (isValid) {
                     pkgName?.let {
+                        AppLockManager.isLockScreenShown.set(false)
+                        AppLockManager.reportBiometricAuthFinished()
                         AppLockManager.unlockApp(it)
                         finishAfterTransition()
                     }
@@ -217,8 +238,11 @@ class PasswordOverlayActivity: FragmentActivity() {
                                 fromMainActivity = false,
                                 lockedAppName = appName,
                                 triggeringPackageName = triggeringPackageNameFromIntent,
-                                onPatternAttempt = onPatternAttemptCallback
+                                onPatternAttempt = onPatternAttemptCallback,
+                                showCloseButton = true,
+                                onClose = { exitToHomeScreen() }
                             )
+                            BackHandler { exitToHomeScreen() }
                         }
 
                         PreferencesRepository.LOCK_TYPE_PASSWORD -> {
@@ -232,8 +256,9 @@ class PasswordOverlayActivity: FragmentActivity() {
                                 triggeringPackageName = triggeringPackageNameFromIntent,
                                 onPasswordAttempt = onPinAttemptCallback,
                                 showCloseButton = true,
-                                onClose = { finish() }
+                                onClose = { exitToHomeScreen() }
                             )
+                            BackHandler { exitToHomeScreen() }
                         }
 
                         else -> {
@@ -247,10 +272,9 @@ class PasswordOverlayActivity: FragmentActivity() {
                                 triggeringPackageName = triggeringPackageNameFromIntent,
                                 onPinAttempt = onPinAttemptCallback,
                                 showCloseButton = true,
-                                onClose = { finish() }
+                                onClose = { exitToHomeScreen() }
                             )
-
-                            BackHandler { }
+                            BackHandler { exitToHomeScreen() }
                         }
                     }
                 }

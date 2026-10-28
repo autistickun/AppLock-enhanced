@@ -356,6 +356,25 @@ fun PatternSetPasswordScreen(
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
+                    if (!isConfirmationMode && !isVerifyOldPasswordMode) {
+                        LockTypeSelector(
+                            selectedType = PreferencesRepository.LOCK_TYPE_PATTERN,
+                            onSelectType = { targetType ->
+                                when (targetType) {
+                                    PreferencesRepository.LOCK_TYPE_PIN -> {
+                                        switchToPinMethod()
+                                    }
+                                    PreferencesRepository.LOCK_TYPE_PASSWORD -> {
+                                        navController.navigate(Screen.SetPasswordAlphanumeric.route) {
+                                            popUpTo(Screen.SetPasswordPattern.route) { inclusive = true }
+                                        }
+                                    }
+                                }
+                            }
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                    }
+
                     Text(
                         text = when {
                             isVerifyOldPasswordMode -> stringResource(R.string.enter_current_pin_label)
@@ -450,16 +469,6 @@ fun PatternSetPasswordScreen(
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    if (!isVerifyOldPasswordMode && !isConfirmationMode) {
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            TextButton(onClick = { switchToPinMethod() }) {
-                                Text(stringResource(R.string.use_pin_instead))
-                            }
-                            TextButton(onClick = { navController.navigate(Screen.SetPasswordAlphanumeric.route) }) {
-                                Text(stringResource(R.string.use_password_button))
-                            }
-                        }
-                    }
 
                     if (isVerifyOldPasswordMode) {
                         TextButton(onClick = { launchDeviceCredentialAuth() }) {

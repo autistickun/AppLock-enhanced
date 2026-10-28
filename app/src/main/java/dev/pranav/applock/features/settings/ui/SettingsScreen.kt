@@ -60,7 +60,6 @@ import dev.pranav.applock.core.utils.launchInfinixAutoStartSettings
 import dev.pranav.applock.core.utils.openAppInfoSettings
 import kotlinx.coroutines.launch
 import android.os.Build
-import dev.pranav.applock.ui.components.DonateButton
 import dev.pranav.applock.ui.icons.*
 import rikka.shizuku.Shizuku
 import rikka.shizuku.ShizukuProvider
@@ -74,7 +73,6 @@ fun SettingsScreen(
     val context = LocalContext.current
     val appLockRepository = remember { AppLockRepository(context) }
 
-    var showDialog by remember { mutableStateOf(false) }
     var showUnlockTimeDialog by remember { mutableStateOf(false) }
 
     val shizukuPermissionLauncher = rememberLauncherForActivityResult(
@@ -167,35 +165,6 @@ fun SettingsScreen(
                 UpdateManager.launchUpdateDownload(context, downloadUrl)
                 availableUpdate = null
             }
-        )
-    }
-
-    if (showDialog) {
-        AlertDialog(
-            onDismissRequest = { showDialog = false },
-            title = { Text(stringResource(R.string.settings_screen_support_development_dialog_title)) },
-            text = { Text(stringResource(R.string.support_development_text)) },
-            confirmButton = {
-                FilledTonalButton(
-                    onClick = {
-                        context.startActivity(
-                            Intent(
-                                Intent.ACTION_VIEW,
-                                "https://pranavpurwar.github.io/donate.html".toUri()
-                            )
-                        )
-                        showDialog = false
-                    }
-                ) {
-                    Text(stringResource(R.string.settings_screen_support_development_donate_button))
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showDialog = false }) {
-                    Text(stringResource(R.string.cancel_button))
-                }
-            },
-            containerColor = MaterialTheme.colorScheme.surface
         )
     }
 
@@ -306,10 +275,6 @@ fun SettingsScreen(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(start = 16.dp, top = 8.dp, bottom = 8.dp)
                 )
-            }
-
-            item {
-                DonateButton()
             }
 
             item {
@@ -1193,48 +1158,75 @@ fun LinksSection() {
         SectionTitle(text = "Links")
 
         Column {
-            SettingsCard(index = 0, listSize = 3) {
-                LinkItem(
-                    title = "Discord Community",
-                    icon = Discord,
-                    onClick = {
-                        val intent = Intent(
-                            Intent.ACTION_VIEW,
-                            "https://discord.gg/46wCMRVAre".toUri()
-                        )
-                        context.startActivity(intent)
-                    }
-                )
-            }
-
-            SettingsCard(index = 1, listSize = 3) {
+            SettingsCard(index = 0, listSize = 2) {
                 LinkItem(
                     title = "Source Code",
                     icon = Icons.Outlined.Code,
                     onClick = {
                         val intent = Intent(
                             Intent.ACTION_VIEW,
-                            "https://github.com/aload0/AppLock".toUri()
+                            "https://github.com/autistickun/AppLock-enhanced".toUri()
                         )
                         context.startActivity(intent)
                     }
                 )
             }
 
-            SettingsCard(index = 2, listSize = 3) {
+            SettingsCard(index = 1, listSize = 2) {
                 LinkItem(
                     title = "Report Issue",
                     icon = Icons.Outlined.BugReport,
                     onClick = {
                         val intent = Intent(
                             Intent.ACTION_VIEW,
-                            "https://github.com/aload0/AppLock/issues".toUri()
+                            "https://github.com/autistickun/AppLock-enhanced/issues".toUri()
                         )
                         context.startActivity(intent)
                     }
                 )
             }
         }
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 4.dp)
+                .clickable {
+                    val intent = Intent(
+                        Intent.ACTION_VIEW,
+                        "https://github.com/autistickun/AppLock-enhanced".toUri()
+                    )
+                    context.startActivity(intent)
+                },
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+            )
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 18.dp, horizontal = 16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = "Made with ❤️ by autistickun",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "AppLock Enhanced • Free & Open Source",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
     }
 }
 
